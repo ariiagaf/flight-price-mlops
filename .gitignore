@@ -4,5 +4,7 @@ __pycache__/
 .DS_Store
 
 data/processed/
-models/*.pklpipeline.log
+models/*.pkl
+
+pipeline.log
 pipeline_error.log
