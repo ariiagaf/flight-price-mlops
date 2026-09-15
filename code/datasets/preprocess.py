@@ -1,5 +1,5 @@
 import pandas as pd
-
+from pathlib import Path
 
 def remove_price_outliers(df):
     q1 = df["price"].quantile(0.25)
@@ -57,6 +57,8 @@ def main():
 
     train = df.iloc[:split_index]
     test = df.iloc[split_index:]
+
+    Path("data/processed").mkdir(parents=True, exist_ok=True)
 
     train.to_csv("data/processed/train.csv", index=False)
     test.to_csv("data/processed/test.csv", index=False)
