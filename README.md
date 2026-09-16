@@ -2,17 +2,17 @@
 
 ## Project Overview
 
-This project implements a simple end-to-end MLOps pipeline for flight price prediction.
+This project implements an end-to-end MLOps pipeline for flight price prediction.
 
-The pipeline includes three main stages:
+The pipeline contains three main stages:
 
 1. Data Engineering
 2. Model Engineering
 3. Deployment
 
-The model predicts flight ticket prices based on flight information such as airline, source city, destination city, departure time, number of stops, class, duration, and days left before departure.
+The model predicts flight ticket prices from historical flight information such as airline, source city, destination city, departure time, number of stops, travel class, duration, and days left before departure.
 
-The complete pipeline can be launched manually with one script and can also run automatically every 5 minutes.
+The complete pipeline can be run manually and can also be scheduled to run automatically every 5 minutes.
 
 ---
 
@@ -20,7 +20,7 @@ The complete pipeline can be launched manually with one script and can also run 
 
 ### Stage 1: Data Engineering
 
-The raw flight dataset is loaded from:
+The raw flight dataset is stored at:
 
 ```text
 data/raw/flights.csv
@@ -29,10 +29,11 @@ data/raw/flights.csv
 The preprocessing stage performs:
 
 - sampling of the raw dataset
-- removal of the flight identifier column
+- removal of the `flight` identifier column
 - removal of duplicate rows
 - removal of missing values
 - removal of price outliers using the IQR method
+- shuffling
 - train/test split
 
 The processed datasets are saved to:
@@ -60,7 +61,9 @@ The model used in this project is:
 Linear Regression
 ```
 
-The trained preprocessing pipeline and model are saved together in:
+The preprocessing steps and the regression model are stored together in a scikit-learn `Pipeline`.
+
+The trained model is saved to:
 
 ```text
 models/flight_price_model.pkl
@@ -93,11 +96,11 @@ The trained model is deployed using:
 - FastAPI for the prediction API
 - Streamlit for the web application
 - Docker for containerization
-- Docker Compose for running the API and app together
+- Docker Compose for running the API and the app together
 
 The API and the web application run in separate Docker containers.
 
-The Streamlit application sends user input to the FastAPI prediction endpoint and displays the predicted flight price.
+The Streamlit application sends user input to the FastAPI service and displays the predicted flight price.
 
 ---
 
@@ -133,8 +136,6 @@ flight-price-mlops/
 ---
 
 ## Requirements
-
-The project was developed using Python 3.11.
 
 Required software:
 
@@ -173,15 +174,29 @@ python -m pip install -r requirements.txt
 
 ---
 
-## Start Docker Services
+## First Run
 
-Build and start the API and Streamlit containers:
+On a fresh clone, the model must be created before the API container starts.
+
+Run the data engineering stage:
+
+```bash
+python code/datasets/preprocess.py
+```
+
+Then train and save the model:
+
+```bash
+python code/models/train.py
+```
+
+After the model has been created, build and start the Docker services:
 
 ```bash
 docker compose -f code/deployment/docker-compose.yml up -d --build
 ```
 
-Check running containers:
+Check that both services are running:
 
 ```bash
 docker compose -f code/deployment/docker-compose.yml ps
@@ -191,7 +206,7 @@ docker compose -f code/deployment/docker-compose.yml ps
 
 ## Run the Complete Pipeline
 
-Run all three stages with:
+After the initial setup, the complete pipeline can be run with:
 
 ```bash
 ./run_pipeline.sh
@@ -202,7 +217,7 @@ The script performs:
 ```text
 Data Engineering
         ↓
-Model Training and Evaluation
+Model Engineering
         ↓
 Model Packaging
         ↓
@@ -267,21 +282,17 @@ The Streamlit application is available at:
 http://localhost:8501
 ```
 
-The user can select or enter flight information and click:
+The user can enter flight information and request a prediction through the web interface.
 
-```text
-Predict price
-```
-
-The application sends the data to the FastAPI service and displays the predicted flight price.
+The Streamlit app sends the data to the FastAPI service and displays the predicted flight price.
 
 ---
 
 ## Automation
 
-The complete pipeline is configured to run automatically every 5 minutes.
+The complete pipeline can be scheduled to run automatically every 5 minutes.
 
-To install the automation:
+Install the automation with:
 
 ```bash
 ./setup_automation.sh
@@ -291,7 +302,13 @@ On macOS, the script uses `launchd`.
 
 On Linux, the script uses `cron`.
 
-The automation launches `run_pipeline.sh` every 300 seconds.
+The automation runs:
+
+```text
+run_pipeline.sh
+```
+
+every 300 seconds.
 
 Pipeline output is written to:
 
@@ -309,19 +326,21 @@ pipeline_error.log
 
 ## Verify Automation
 
-On macOS, check the registered job with:
+### macOS
+
+Check the registered job:
 
 ```bash
 launchctl print gui/$(id -u)/com.flightprice.pipeline
 ```
 
-To manually trigger the scheduled pipeline:
+Manually trigger the scheduled pipeline:
 
 ```bash
 launchctl kickstart -k gui/$(id -u)/com.flightprice.pipeline
 ```
 
-Then check the log:
+Check the latest logs:
 
 ```bash
 tail -n 50 pipeline.log
@@ -337,7 +356,7 @@ A successful automated run should contain:
 
 ## Stop Docker Services
 
-To stop the API and application:
+To stop the API and Streamlit application:
 
 ```bash
 docker compose -f code/deployment/docker-compose.yml down
@@ -354,21 +373,22 @@ docker compose -f code/deployment/docker-compose.yml down
 - Streamlit
 - Docker
 - Docker Compose
-- launchd / cron
+- launchd
+- cron
 
 ---
 
-## Model
+## Model Choice
 
-The project uses Linear Regression because the main goal of the assignment is to demonstrate a complete automated MLOps workflow rather than complex model optimization.
+The project uses Linear Regression because the purpose of the assignment is to demonstrate a complete automated MLOps workflow rather than complex model optimization.
 
-The saved scikit-learn pipeline includes both feature preprocessing and the regression model, which allows the API to directly accept raw feature values and generate predictions.
+A scikit-learn `Pipeline` stores feature preprocessing and the regression model together, so the API can receive raw feature values and pass them through the same preprocessing steps used during training.
 
 ---
 
 ## Result
 
-The project implements a complete automated MLOps workflow:
+The project implements the following workflow:
 
 ```text
 Raw flight data
